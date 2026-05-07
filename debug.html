@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASR 流式调试页</title>
+  <style>
+    :root {
+      --bg: #f3f6fb;
+      --card: #ffffff;
+      --border: #dce4f0;
+      --text: #1f2a37;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --log-bg: #101a2b;
+      --log-fg: #dbe5f5;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      margin: 0;
+      background: radial-gradient(circle at top, #e7eefb 0%, var(--bg) 45%, #eff3f9 100%);
+      color: var(--text);
+    }
+
+    .wrap { max-width: 1160px; margin: 24px auto 28px; padding: 0 16px; }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .topbar h2 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .nav a {
+      text-decoration: none;
+      color: #1f2937;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      border-radius: 999px;
+    }
+
+    .nav a.active {
+      color: #fff;
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 6px 18px rgba(16, 24, 40, 0.05);
+    }
+
+    .row { display: grid; grid-template-columns: repeat(6, minmax(100px, 1fr)); gap: 10px; }
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+
+    input {
+      width: 100%;
+      padding: 9px 10px;
+      border: 1px solid #cfd8e6;
+      border-radius: 8px;
+      background: #fcfdff;
+      color: #111827;
+    }
+
+    button {
+      padding: 8px 12px;
+      border: 1px solid #cfd8e6;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #fff;
+      color: #1f2937;
+    }
+
+    button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .status { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 10px; }
+
+    .kv {
+      background: linear-gradient(180deg, #fbfdff 0%, #f4f8ff 100%);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+    }
+
+    .k { font-size: 12px; color: var(--muted); }
+    .v { font-size: 18px; margin-top: 4px; font-weight: 600; }
+
+    .cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .panel-title { margin: 0 0 8px; font-size: 17px; }
+    .panel-sub { font-size: 12px; color: var(--muted); margin: 0 0 10px; }
+
+    .log {
+      height: 320px;
+      overflow: auto;
+      background: var(--log-bg);
+      color: var(--log-fg);
+      padding: 12px;
+      border-radius: 10px;
+      font-family: Consolas, "SFMono-Regular", monospace;
+      font-size: 12px;
+      line-height: 1.55;
+      border: 1px solid #1d2f4a;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .event-feed {
+      height: 320px;
+      overflow: auto;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .event-item {
+      background: #fff;
+      border: 1px solid #e3eaf6;
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .event-name { font-size: 13px; font-weight: 600; color: #1f2937; }
+
+    .intent-tag {
+      font-size: 12px;
+      color: #334155;
+      background: #eef4ff;
+      border: 1px solid #d7e6ff;
+      border-radius: 999px;
+      padding: 4px 10px;
+      white-space: nowrap;
+    }
+
+    .intent-tag .intent-value { color: var(--accent); font-weight: 700; }
+
+    .transcript-box {
+      height: 320px;
+      overflow: auto;
+      background: linear-gradient(180deg, #f9fbff 0%, #f3f7ff 100%);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 16px;
+      line-height: 1.8;
+      color: #1f2937;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .transcript-empty { color: #8a94a6; font-size: 14px; }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+    @media (max-width: 980px) {
+      .row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .status, .cols { grid-template-columns: 1fr; }
+      .topbar { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <h2>ASR 流式调试页</h2>
+      <div class="nav">
+        <a href="/" target="_blank" rel="noopener noreferrer">打开监控页</a>
+        <a href="/debug" class="active">当前调试页</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div>
+          <label for="host">WS Host</label>
+          <input id="host" value="192.168.10.70" />
+        </div>
+        <div>
+          <label for="port">WS Port</label>
+          <input id="port" value="8800" />
+        </div>
+        <div>
+          <label for="callId">Call ID</label>
+          <input id="callId" value="1001" />
+        </div>
+        <div>
+          <label for="uuid">UUID</label>
+          <input id="uuid" value="123" />
+        </div>
+        <div>
+          <label for="modelId">Model ID</label>
+          <input id="modelId" value="1" />
+        </div>
+        <div>
+          <label for="chunkMs">Chunk(ms)</label>
+          <input id="chunkMs" value="60" />
+        </div>
+      </div>
+      <div class="toolbar">
+        <button id="startBtn" class="primary">开始语音流</button>
+        <button id="pauseBtn" disabled>暂停</button>
+        <button id="resumeBtn" disabled>继续</button>
+        <button id="stopBtn" disabled>停止语音流</button>
+        <button id="clearBtn">清空日志</button>
+      </div>
+      <div class="hint">用于本地麦克风推流调试；事件命中与识别结果仍通过监控接口回流展示。</div>
+    </div>
+
+    <div class="card status">
+      <div class="kv"><div class="k">WS 状态</div><div class="v" id="wsState">DISCONNECTED</div></div>
+      <div class="kv"><div class="k">SSE 状态</div><div class="v" id="sseState">IDLE</div></div>
+      <div class="kv"><div class="k">已发送帧</div><div class="v" id="frames">0</div></div>
+      <div class="kv"><div class="k">已发送字节</div><div class="v" id="bytes">0</div></div>
+    </div>
+
+    <div class="cols">
+      <div class="card">
+        <h3 class="panel-title">本地流日志</h3>
+        <p class="panel-sub">查看连接状态与实时推流细节</p>
+        <div id="asrLog" class="log"></div>
+      </div>
+      <div class="card">
+        <h3 class="panel-title">事件命中</h3>
+        <p class="panel-sub">展示业务回流事件与意图 ID</p>
+        <div id="eventLog" class="event-feed"></div>
+      </div>
+      <div class="card">
+        <h3 class="panel-title">最新识别结果</h3>
+        <p class="panel-sub">实时显示当前一句，不叠加历史文本</p>
+        <div id="transcriptLog" class="transcript-box">
+          <span class="transcript-empty">等待语音输入...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/debug.js"></script>
+</body>
+</html>
